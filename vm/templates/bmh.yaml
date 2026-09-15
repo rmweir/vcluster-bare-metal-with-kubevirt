@@ -11,7 +11,12 @@ metadata:
     metal3.vcluster.com/dns-servers: {{ .bmh.dns }}
     metal3.vcluster.com/gateway: {{ .bmh.gateway }}
 spec:
-  online: true
+  # MUST be false: the platform only claims hosts that are powered off.
+  # See isBMHAvailable() in pkg/autoscaling/provider_metal3.go - a host with
+  # status.poweredOn=true is skipped, so `online: true` makes every host
+  # permanently unclaimable ("no available BareMetalHost found for NodeType").
+  # Ironic powers the machine on itself when it provisions it.
+  online: false
   automatedCleaningMode: disabled
   bootMACAddress: {{ .mac | quote }}
   bmc:

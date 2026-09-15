@@ -1,0 +1,36 @@
+# Forwards SSH to a provisioned bare metal machine on the br0 network.
+# 192.168.100.0/24 lives on br0 inside the vind container and is NOT routable from
+# your workstation, so this LoadBalancer is how you reach the machine from outside.
+# The address below is the machine's static IP, set per-VM in vm/values.yaml
+# (bmh.ip): bare-metal-1 = .10, bare-metal-2 = .11. Change it to match your target.
+apiVersion: v1
+kind: Service
+metadata:
+  name: bare-metal-ssh
+  namespace: default
+spec:
+  type: LoadBalancer
+  ports:
+    - name: ssh
+      port: 22
+      targetPort: 22
+      protocol: TCP
+
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: bare-metal-ssh
+  namespace: default
+  labels:
+    kubernetes.io/service-name: bare-metal-ssh
+addressType: IPv4
+ports:
+  - name: ssh
+    port: 22
+    protocol: TCP
+endpoints:
+  - addresses:
+      - 192.168.100.100
+    conditions:
+      ready: true

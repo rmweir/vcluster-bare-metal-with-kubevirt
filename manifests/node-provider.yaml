@@ -10,6 +10,12 @@ spec:
       namespace: default
     deploy:
       multus:
+        # NOTE: the bundled multus chart HARDCODES memory 50Mi in its DaemonSet
+        # template (verified: it accepts a `resources` value but never references
+        # it, so helmValues cannot change this). 50Mi gets OOMKilled by the CNI
+        # stampede when the cluster restarts, which takes down coredns and then
+        # everything else. Raise it after install with:
+        #   make fix-multus-memory
         enabled: true
       metal3:
         enabled: true

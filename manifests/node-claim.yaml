@@ -10,5 +10,5 @@ spec:
   owner:
     user: admin
   properties:
-    vcluster.com/os-image: ubuntu2404-20260307
+    vcluster.com/os-image: ubuntu2404-20260826
     vcluster.com/ssh-keys: demo
