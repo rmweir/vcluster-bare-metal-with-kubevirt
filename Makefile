@@ -1,4 +1,4 @@
-.PHONY: vind-up vind-down vind-resume fix-multus-memory vind-status vind-persist install install-cert-manager install-cni-static install-kubevirt install-bridge install-platform reset-admin-password install-os-image install-ssh-key install-node-provider install-network-environment create-vms create-machine create-vcluster create-vcluster-template create-ssh-service
+.PHONY: vind-up vind-down vind-resume refresh-capacity fix-multus-memory vind-status vind-persist install install-cert-manager install-cni-static install-kubevirt install-bridge install-platform reset-admin-password install-os-image install-ssh-key install-node-provider install-network-environment create-vms create-machine create-vcluster create-vcluster-template create-ssh-service
 
 CLUSTER_NAME ?= bare-metal-fun
 KUBECONFIG := $(CURDIR)/kubeconfig
@@ -155,6 +155,32 @@ install-node-provider:
 
 install-network-environment:
 	kubectl apply -f manifests/node-environment.yaml
+
+# Force the NodeType to recompute its capacity.
+#
+# The node-type-controller does not watch BareMetalHosts and only reconciles on
+# a NodeType *generation* change. After a host is released (claim deleted),
+# capacity stays stale, so new claims sit Pending with "no available and
+# matching node type found for node claim requirements" even though a host is
+# available.
+#
+# cost is the only field that both propagates to the NodeType and changes its
+# generation, so we bump it and immediately set it back to 0. cost affects how
+# likely a node type is to be selected and is shown in the UI, so we do not
+# leave an arbitrary value behind.
+#
+# Symptom this fixes:
+#   kubectl get nodetypes   -> claimed == total (no free capacity)
+#   claim message           -> "no available and matching node type found"
+refresh-capacity:
+	@kubectl patch nodeprovider metal3 --type=merge \
+		-p '{"spec":{"metal3":{"nodeTypes":[{"name":"vm","cost":1}]}}}' >/dev/null
+	@sleep 15
+	@kubectl patch nodeprovider metal3 --type=merge \
+		-p '{"spec":{"metal3":{"nodeTypes":[{"name":"vm","cost":0}]}}}' >/dev/null
+	@sleep 15
+	@echo "capacity refreshed:"
+	@kubectl get nodetypes
 
 create-machine:
 	kubectl apply -f manifests/node-claim.yaml

@@ -17,7 +17,12 @@ spec:
   # permanently unclaimable ("no available BareMetalHost found for NodeType").
   # Ironic powers the machine on itself when it provisions it.
   online: false
-  automatedCleaningMode: disabled
+  # metadata (the Metal3 default) wipes partition metadata on provision AND on
+  # release. With `disabled`, a released host keeps its installed OS, UEFI boots
+  # that instead of PXE, and the host can never be re-provisioned - Ironic waits
+  # forever for an agent that never starts. Valid values are only
+  # "metadata" and "disabled"; there is no "enabled".
+  automatedCleaningMode: metadata
   bootMACAddress: {{ .mac | quote }}
   bmc:
     address: redfish://{{ .name }}-virtbmc.default.svc.cluster.local:443
